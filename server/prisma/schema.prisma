@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User{
+  id              String            @id @default(uuid())
+  username        String 
+  email           String            @unique
+  password        String
+
+  sentMessages    Message[]         @relation("SentMessages")
+  receiveMessages Message[]         @relation("ReceivedMessages") 
+
+  notifications   Notification[]    @relation("Inotifications")
+
+  contacts        Contact[]         @relation("UserContacts")
+  contacted       Contact[]         @relation("ContactedBy") 
+
+  friendRequestSent Friendship[]    @relation("FriendRequestSender")
+  friendRequestReceiver Friendship[]    @relation("FriendRequestReceiver")
+  createAt        DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+
+}
+
+model Message{
+  id              String            @id @default(uuid())
+  content         String
+  isRead          Boolean           @default(false)
+  senderId        String
+  receiverId      String
+  conversationId  String?
+
+  sender          User              @relation("SentMessages",fields:[senderId], references: [id])
+  receiver        User              @relation("ReceivedMessages", fields:[receiverId], references:[id])
+  conversation    Conversation?      @relation("Conversations", fields:[conversationId], references:[id])
+  createAt        DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+}
+
+model Notification{
+  id              String            @id @default(uuid())
+  userId          String
+  content         String
+  isRead          Boolean           @default(false)
+
+
+  notification    User              @relation("Inotifications", fields:[userId], references:[id])
+  createAt        DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+}
+
+model Conversation{
+  id              String            @id @default(uuid())
+  subject         String 
+
+  message         Message[]         @relation("Conversations")
+
+  createAt        DateTime          @default(now())
+}
+
+model Contact{
+  id              String            @id @default(uuid())
+  userId          String
+  contactUserId   String
+
+  user            User              @relation("UserContacts", fields:[userId], references:[id])
+  contact         User              @relation("ContactedBy", fields:[contactUserId], references:[id])
+
+  createAt        DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+}
+
+
+model Friendship{
+  id              String            @id @default(uuid())
+  senderId        String
+  receiverId      String
+  status          String            @default("PENDING")
+  createAt        DateTime          @default(now())
+  updateAt        DateTime          @updatedAt
+
+  sender          User              @relation("FriendRequestSender", fields:[senderId], references:[id])
+  receiver        User              @relation("FriendRequestReceiver", fields:[receiverId], references:[id])
+
+  @@unique([senderId, receiverId])
+
+  
+}
